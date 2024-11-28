@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { MiddlewareConsumer, Module, RequestMethod } from '@nestjs/common';
 import { ClientsModule, Transport } from '@nestjs/microservices';
 import { UsersController } from './users.controller';
 import { ConfigService } from './services/config/config.service';
@@ -6,6 +6,7 @@ import { TokenService } from './services/token.service';
 import { JwtModule } from '@nestjs/jwt';
 import { MongooseModule } from '@nestjs/mongoose';
 import { TokenSchema } from './schemas/token.schema';
+import { refreshTokenMiddleware } from './middleware/refreshToken.middleware';
 
 @Module({
   imports: [
@@ -32,11 +33,25 @@ import { TokenSchema } from './schemas/token.schema';
       },
     ]),
     JwtModule.register({
-      secret: process.env.JWT_SECRET, // Ensure you provide the secret
+      secret: process.env.JWT_SECRET || 'your-secret-key', // Ensure you provide the secret
       signOptions: { expiresIn: '60s' } // Optional: adjust as needed
     }),
   ],
   controllers: [UsersController],
   providers: [ConfigService, TokenService],
 })
-export class AppModule {}
+
+
+export class AppModule {
+//to apply middleware to
+  configure(consumer: MiddlewareConsumer) {
+    consumer
+      .apply(refreshTokenMiddleware)
+      .exclude(
+        { path: 'users/', method: RequestMethod.POST },
+        { path: 'users/login', method: RequestMethod.POST }
+      )
+      .forRoutes('*'); // Apply middleware to all routes or use specific routes
+  }
+  
+}

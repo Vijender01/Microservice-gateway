@@ -1,7 +1,8 @@
-import { Body, Controller, Get, HttpException, HttpStatus, Inject, Post, Req } from '@nestjs/common';
+import { Body, Controller, Get, HttpException, HttpStatus, Inject, Post, Req, Res } from '@nestjs/common';
 import { ClientProxy } from '@nestjs/microservices';
 import { ApiCreatedResponse } from '@nestjs/swagger';
 import { firstValueFrom } from 'rxjs';
+import { Response } from 'express';
 import { IAuthorizedRequest } from 'src/interfaces/common/authorized-request.interface';
 import { GetUserByTokenResponseDto } from 'src/interfaces/user/dto/get-user-by-token-response.dto';
 import { IServiceUserGetByIdResponse } from 'src/interfaces/user/dto/service-user-get-by-id-response.interface';
@@ -50,10 +51,15 @@ export class UsersController {
     })
     public async createUser(
       @Body() userRequest: CreateUserDto,
+      @Res({ passthrough: true }) res: Response
     ): Promise<CreateUserResponseDto> {
+      console.log('userRequest?????',userRequest);
+      
       const createUserResponse: IServiceUserCreateResponse = await firstValueFrom(
         this.userServiceClient.send('user_create', userRequest),
       );
+      console.log('createUserResponse????',createUserResponse);
+      
       if (createUserResponse.status !== HttpStatus.CREATED) {
         throw new HttpException(
           {
@@ -71,9 +77,22 @@ export class UsersController {
     //     }),
     //   );
 
+    console.log('createUserResponse222222222222222????',createUserResponse.user.id);
+
+
       const createTokenResponse = await this.tokenService.createToken(createUserResponse.user.id);
 
       console.log('createtokenresponse',createTokenResponse);
+
+      this.tokenService.setTokenInRes(res, createTokenResponse)
+
+      // res.cookie('auth_token', createTokenResponse.token, {
+      //   httpOnly: true, // Ensures the cookie is accessible only by the web server
+      //   secure: process.env.NODE_ENV === 'production', // Ensures the cookie is sent only over HTTPS in production
+      //   maxAge: 30 * 24 * 60 * 60 * 1000, // Expiration time in milliseconds (30 days)
+      //   sameSite: 'strict', // Helps mitigate CSRF attacks
+      //   path: '/', // Cookie available for all routes
+      // });
       
   
       return {
@@ -95,6 +114,7 @@ export class UsersController {
     })
     public async loginUser(
       @Body() loginRequest: LoginUserDto,
+      @Res({ passthrough: true }) res: Response
     ): Promise<LoginUserResponseDto> {
       console.log('login>>>>>>>>>>>>>>>>>>>',loginRequest);
 
@@ -120,28 +140,25 @@ export class UsersController {
   
       console.log('2??',getUserResponse);
   
-    //   const createTokenResponse: IServiveTokenCreateResponse = await firstValueFrom(
-    //     this.tokenServiceClient.send('token_create', {
-    //       userId: getUserResponse.user.id,
-    //     }),
-    //   );
+      const createTokenResponse = await this.tokenService.createToken(getUserResponse.user.id);
+      this.tokenService.setTokenInRes(res, createTokenResponse)
       
   
-    //   console.log('3??',createTokenResponse);
+      console.log('3??',createTokenResponse);
   
       
   
       return {
-        // message: createTokenResponse.message,
-        // data: {
-        //   token: createTokenResponse.token,
-        // },
-        // errors: null,
-         message: 'createTokenResponse.message',
+        message: getUserResponse.message,
         data: {
-          token: 'createTokenResponse.token',
+          token: createTokenResponse.token,
         },
         errors: null,
+        //  message: 'createTokenResponse.message',
+        // data: {
+        //   token: 'createTokenResponse.token',
+        // },
+        // errors: null,
       };
     }
   
