@@ -24,26 +24,8 @@ export class UsersController {
     ) { }
 
     @Get()
-    @Authorization(true)
-    public async getUserByToken(
-        @Req() request: IAuthorizedRequest,
-    ): Promise<GetUserByTokenResponseDto> {
-        console.log('i am in userssss?????????',request.user);
-        
-        const userInfo = request.user;
-        console.log(request.user);
-        const userResponse: IServiceUserGetByIdResponse = await firstValueFrom(
-            this.userServiceClient.send('user_get_by_id', userInfo.id),
-        );
+    
 
-        return {
-            message: userResponse.message,
-            data: {
-                user: userResponse.user,
-            },
-            errors: null,
-        };
-    }
 
     @Post()
     @ApiCreatedResponse({

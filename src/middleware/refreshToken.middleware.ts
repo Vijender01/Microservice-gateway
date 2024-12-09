@@ -12,7 +12,7 @@ export class refreshTokenMiddleware implements NestMiddleware {
             const token = req.cookies?.auth_token; 
 
             if (!token) {
-                res.redirect('/users/login');
+                return res.status(401).json({ message: 'Unauthorized: No token found' });
             }
 
             const decode = this.jwtService.decode(token) as { exp: number } | null;
