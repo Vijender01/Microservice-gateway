@@ -49,7 +49,8 @@ export class AppModule {
       .apply(refreshTokenMiddleware)
       .exclude(
         { path: 'users/', method: RequestMethod.POST },
-        { path: 'users/login', method: RequestMethod.POST }
+        { path: 'users/login', method: RequestMethod.POST },
+        { path: 'users/signout', method: RequestMethod.POST },
       )
       .forRoutes('*'); // Apply middleware to all routes or use specific routes
   }

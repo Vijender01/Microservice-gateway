@@ -10,7 +10,8 @@ export class refreshTokenMiddleware implements NestMiddleware {
     async use(req: Request, res: Response, next: NextFunction) {
         try {
             const token = req.cookies?.auth_token; 
-
+            console.log('inside refresh Token',token);
+            
             if (!token) {
                 return res.status(401).json({ message: 'Unauthorized: No token found' });
             }

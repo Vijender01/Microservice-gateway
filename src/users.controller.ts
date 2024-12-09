@@ -23,7 +23,12 @@ export class UsersController {
         private readonly tokenService: TokenService,
     ) { }
 
-    @Get()
+    @Get('getUserByEmail')   //test route to check if the middle ware to verify token is working
+    public async getUserByEmail(
+      @Body() email: string
+    ) {
+      return email;
+    }
     
 
 
@@ -85,6 +90,18 @@ export class UsersController {
         },
         errors: null,
       };
+    }
+
+    @Post('/signout')  //token is removed from the cookies
+    public async sighout(
+      @Res({ passthrough: true}) res: Response
+    ){
+      console.log('sighout???????????????');
+      
+      await this.tokenService.removeToken(res);
+      return{ 
+        message: 'User signed out successfully',
+      }
     }
 
 

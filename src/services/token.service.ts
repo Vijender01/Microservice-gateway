@@ -45,4 +45,10 @@ export class TokenService {
         });
       }
 
+      public removeToken(res:Response){
+
+        res.clearCookie('auth_token');
+
+      }
+
 }
