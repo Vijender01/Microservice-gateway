@@ -7,6 +7,8 @@ import { JwtModule } from '@nestjs/jwt';
 import { MongooseModule } from '@nestjs/mongoose';
 import { TokenSchema } from './schemas/token.schema';
 import { refreshTokenMiddleware } from './middleware/refreshToken.middleware';
+import { APP_GUARD } from '@nestjs/core';
+import { RolesGuard } from './services/guards/role.guard';
 
 @Module({
   imports: [
@@ -38,7 +40,10 @@ import { refreshTokenMiddleware } from './middleware/refreshToken.middleware';
     }),
   ],
   controllers: [UsersController],
-  providers: [ConfigService, TokenService],
+  providers: [ConfigService, TokenService, {
+    provide: APP_GUARD,
+    useClass: RolesGuard,
+  },],
 })
 
 

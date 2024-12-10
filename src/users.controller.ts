@@ -67,7 +67,7 @@ export class UsersController {
     console.log('createUserResponse222222222222222????',createUserResponse.user.id);
 
 
-      const createTokenResponse = await this.tokenService.createToken(createUserResponse.user.id);
+      const createTokenResponse = await this.tokenService.createToken(createUserResponse.user.id, createUserResponse.user.role);
 
       console.log('createtokenresponse',createTokenResponse);
 
@@ -122,6 +122,8 @@ export class UsersController {
       const getUserResponse: IServiceUserSearchResponse = await firstValueFrom(
         this.userServiceClient.send('user_search_by_credentials', loginRequest),
       );
+
+    
   
       console.log('1getUserResponse??',getUserResponse);
       
@@ -139,7 +141,7 @@ export class UsersController {
   
       console.log('2??',getUserResponse);
   
-      const createTokenResponse = await this.tokenService.createToken(getUserResponse.user.id);
+      const createTokenResponse = await this.tokenService.createToken(getUserResponse.user.id, getUserResponse.user.role);
       this.tokenService.setTokenInRes(res, createTokenResponse)
       
   

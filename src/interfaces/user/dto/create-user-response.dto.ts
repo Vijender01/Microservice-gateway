@@ -10,6 +10,7 @@ export class CreateUserResponseDto {
         email: 'test@denrox.com',
         is_confirmed: false,
         id: '5d987c3bfb881ec86b476bcc',
+        role:'admin',
       },
     },
     nullable: true,

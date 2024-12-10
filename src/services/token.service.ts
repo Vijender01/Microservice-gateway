@@ -4,6 +4,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model, Query } from 'mongoose';
 import { IToken } from 'src/interfaces/token/token.interface';
 import { Response } from 'express';
+import { Role } from 'src/common/enums/role.enums';
 
 @Injectable()
 export class TokenService {
@@ -11,12 +12,13 @@ export class TokenService {
         @InjectModel('Token') private readonly tokenModel: Model<IToken>,
     ) { }
 
-    public createToken(userId: string): Promise<IToken> {
+    public createToken(userId: string,userRole:Role): Promise<IToken> {
       console.log('userId in token service???',userId);
       
         const token = this.jwtService.sign(
           {
             userId,
+            userRole,
           },
           {
             //move it to env file...
@@ -30,6 +32,7 @@ export class TokenService {
         return new this.tokenModel({
           user_id: userId,
           token,
+          user_role: userRole,
         }).save();
       }
 
