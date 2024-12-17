@@ -2,18 +2,34 @@ import { BadRequestException, Injectable, NestMiddleware, NotFoundException, Una
 import { Reflector } from '@nestjs/core';
 import { Request, Response, NextFunction } from 'express';
 import { JwtService } from '@nestjs/jwt';
+import { Model} from 'mongoose';
+import { InjectModel } from '@nestjs/mongoose';
+import { IToken } from 'src/interfaces/token/token.interface';
 
 @Injectable()
 export class refreshTokenMiddleware implements NestMiddleware {
-    constructor(private reflector: Reflector, private jwtService: JwtService) { }
+    constructor(
+        private reflector: Reflector, 
+        private jwtService: JwtService,
+        @InjectModel('Token') private readonly tokenModel: Model<IToken>,
+
+    ) { }
 
     async use(req: Request, res: Response, next: NextFunction) {
         try {
             const token = req.cookies?.auth_token; 
-            console.log('inside refresh Token',token);
+            // console.log('inside refresh Token',token);
             
             if (!token) {
                 return res.status(401).json({ message: 'Unauthorized: No token found' });
+            }
+
+            const storedToken = await this.tokenModel.findOne({ token });
+
+            if(storedToken && storedToken.status !== 'valid') {
+                return res
+                .status(401)
+                .json({ message: 'Unauthorized' });
             }
 
             const decode = this.jwtService.decode(token) as { exp: number } | null;

@@ -9,7 +9,7 @@ import { ROLES_KEY } from 'src/decorators/roles.decorator';
 
 @Injectable()
 export class RolesGuard implements CanActivate {
-  constructor(private reflector: Reflector, private jwtService: JwtService) {}
+  constructor(private reflector: Reflector, private jwtService: JwtService) { }
 
   canActivate(context: ExecutionContext): boolean {
     const requiredRoles = this.reflector.getAllAndOverride<Role[]>(ROLES_KEY, [
@@ -22,13 +22,18 @@ export class RolesGuard implements CanActivate {
     }
 
     const request = context.switchToHttp().getRequest<Request>();
-    const token = request.headers['authorization']?.split(' ')[1]; // Get token from Bearer authorization
+    const token = request.cookies?.auth_token; // Get token from Bearer authorization
+
+    if (!token) {
+      return false; // No token means unauthorized
+    }
+
     const user = this.jwtService.decode(token); // Decode the JWT to get user information
 
-    if (!user || !user['roles']) {
+    if (!user || !user['userRole']) {
       return false; // If no user or no roles found, deny access
     }
 
-    return requiredRoles.some((role) => user['roles'].includes(role));
+    return requiredRoles.some((role) => user['userRole'].includes(role));
   }
 }

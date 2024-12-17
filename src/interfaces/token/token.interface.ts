@@ -5,4 +5,5 @@ export interface IToken extends Document {
   user_id: string;
   user_role: Role;
   token: string;
+  status: string;
 }

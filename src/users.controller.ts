@@ -1,8 +1,8 @@
-import { Body, Controller, Get, HttpException, HttpStatus, Inject, Post, Req, Res } from '@nestjs/common';
+import { Body, Controller, Get, HttpException, HttpStatus, Inject, Post, Req, Res, UseGuards } from '@nestjs/common';
 import { ClientProxy } from '@nestjs/microservices';
 import { ApiCreatedResponse } from '@nestjs/swagger';
 import { firstValueFrom } from 'rxjs';
-import { Response } from 'express';
+import {Request, Response } from 'express';
 import { IAuthorizedRequest } from 'src/interfaces/common/authorized-request.interface';
 import { GetUserByTokenResponseDto } from 'src/interfaces/user/dto/get-user-by-token-response.dto';
 import { IServiceUserGetByIdResponse } from 'src/interfaces/user/dto/service-user-get-by-id-response.interface';
@@ -15,6 +15,9 @@ import { CreateUserResponseDto } from './interfaces/user/dto/create-user-respons
 import { CreateUserDto } from './interfaces/user/dto/create-user.dto';
 import { IServiceUserCreateResponse } from './interfaces/user/dto/service-user-create-response.interface';
 import { TokenService } from './services/token.service';
+import { RolesGuard } from './services/guards/role.guard';
+import { Roles } from './decorators/roles.decorator';
+import { Role } from './common/enums/role.enums';
 
 @Controller('users')
 export class UsersController {
@@ -23,7 +26,9 @@ export class UsersController {
         private readonly tokenService: TokenService,
     ) { }
 
+    @UseGuards(RolesGuard)
     @Get('getUserByEmail')   //test route to check if the middle ware to verify token is working
+    @Roles(Role.Admin)
     public async getUserByEmail(
       @Body() email: string
     ) {
@@ -91,18 +96,34 @@ export class UsersController {
         errors: null,
       };
     }
-
-    @Post('/signout')  //token is removed from the cookies
-    public async sighout(
-      @Res({ passthrough: true}) res: Response
-    ){
-      console.log('sighout???????????????');
+    @Post('/signout')
+    public async signout(
+      @Res({ passthrough: true }) res: Response,
+      @Req() req: Request
+    ) {
+      const isTokenRemoved = await this.tokenService.removeToken(req, res);
+      console.log('isToken removed????',isTokenRemoved);
       
-      await this.tokenService.removeToken(res);
-      return{ 
-        message: 'User signed out successfully',
+    
+      // Respond with a simple message
+      // if (!isTokenRemoved) {
+      //   console.log('Failed to invalidate the token.');
+        // return res.status(400).json({ message: 'Failed to sign out. Token not found or already invalid.' });
+        // return {
+        //   message: 'Failed to sign out. Token not found or already invalid.'
+        // }
+      // }
+    
+      // console.log('Token successfully invalidated.');
+      // return res.status(200).json({ message: 'User signed out successfully.' });
+      return {
+        message: 'User signed out successfully.'
       }
     }
+    
+    
+
+    
 
 
 

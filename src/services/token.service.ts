@@ -3,7 +3,7 @@ import { JwtService } from '@nestjs/jwt';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Query } from 'mongoose';
 import { IToken } from 'src/interfaces/token/token.interface';
-import { Response } from 'express';
+import {Request, Response } from 'express';
 import { Role } from 'src/common/enums/role.enums';
 
 @Injectable()
@@ -33,6 +33,7 @@ export class TokenService {
           user_id: userId,
           token,
           user_role: userRole,
+          status:'valid',
         }).save();
       }
 
@@ -48,10 +49,41 @@ export class TokenService {
         });
       }
 
-      public removeToken(res:Response){
-
-        res.clearCookie('auth_token');
-
+      public async removeToken(req: Request, res: Response): Promise<boolean> {
+        try {
+          const token = req.cookies?.auth_token;
+      
+          if (!token) {
+            console.log('No auth_token found in cookies.');
+            return false;
+          }
+      
+          const updatedToken = await this.tokenModel.findOneAndUpdate(
+            { token: token, status: 'valid' },
+            { $set: { status: 'invalid' } },
+            { new: true, lean: true } // Use `lean: true` to return plain JS object
+          );
+      
+          if (!updatedToken) {
+            console.log('Token not found or already invalid.');
+            return false;
+          }
+      
+          console.log('Token status updated to invalid:', updatedToken._id); // Log only specific fields
+      
+          res.clearCookie('auth_token', {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'strict',
+            path: '/',
+          });
+      
+          return true;
+        } catch (error) {
+          console.error('Error removing token:', error.message);
+          return false;
+        }
       }
-
+      
+      
 }
