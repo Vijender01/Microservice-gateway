@@ -9,10 +9,11 @@ import { TokenSchema } from './schemas/token.schema';
 import { refreshTokenMiddleware } from './middleware/refreshToken.middleware';
 import { APP_GUARD } from '@nestjs/core';
 import { RolesGuard } from './services/guards/role.guard';
+import { ProductsController } from './products.controller';
 
 @Module({
   imports: [
-    MongooseModule.forRoot('mongodb://localhost:27017/nest_main',{
+    MongooseModule.forRoot('mongodb://localhost:27017/nest_main', {
       autoCreate: true
     }),
     MongooseModule.forFeature([
@@ -33,13 +34,22 @@ import { RolesGuard } from './services/guards/role.guard';
           },
         },
       },
+      {
+        name: 'PRODUCT_SERVICE', // Product Service Client (if needed)
+        transport: Transport.RMQ,
+        options: {
+          urls: ['amqps://obhlbcvp:vuMB_HPYPo769PiIYXfx-FqjXvgjq9QB@armadillo.rmq.cloudamqp.com/obhlbcvp'],
+          queue: 'product_queue',
+          queueOptions: { durable: false },
+        },
+      }
     ]),
     JwtModule.register({
       secret: process.env.JWT_SECRET || 'your-secret-key', // Ensure you provide the secret
       signOptions: { expiresIn: '60s' } // Optional: adjust as needed
     }),
   ],
-  controllers: [UsersController],
+  controllers: [UsersController, ProductsController],
   providers: [ConfigService, TokenService, {
     provide: APP_GUARD,
     useClass: RolesGuard,
@@ -48,7 +58,7 @@ import { RolesGuard } from './services/guards/role.guard';
 
 
 export class AppModule {
-//to apply middleware to
+  //to apply middleware to
   configure(consumer: MiddlewareConsumer) {
     consumer
       .apply(refreshTokenMiddleware)
@@ -59,5 +69,5 @@ export class AppModule {
       )
       .forRoutes('*'); // Apply middleware to all routes or use specific routes
   }
-  
+
 }
