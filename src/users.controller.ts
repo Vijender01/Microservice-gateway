@@ -2,56 +2,52 @@ import { Body, Controller, Get, HttpException, HttpStatus, Inject, Post, Req, Re
 import { ClientProxy } from '@nestjs/microservices';
 import { ApiCreatedResponse } from '@nestjs/swagger';
 import { firstValueFrom } from 'rxjs';
-import {Request, Response } from 'express';
-import { IAuthorizedRequest } from 'src/interfaces/common/authorized-request.interface';
-import { GetUserByTokenResponseDto } from 'src/interfaces/user/dto/get-user-by-token-response.dto';
-import { IServiceUserGetByIdResponse } from 'src/interfaces/user/dto/service-user-get-by-id-response.interface';
-import { LoginUserResponseDto } from './interfaces/user/dto/login-user-response.dto';
-import { LoginUserDto } from './interfaces/user/dto/login-user-dto';
-import { IServiceUserSearchResponse } from './interfaces/user/dto/service-user-search-response.interface';
-import { IServiveTokenCreateResponse } from './token/service-token-create-response.interface';
-import { Authorization } from './decorators/authorization.decorator';
-import { CreateUserResponseDto } from './interfaces/user/dto/create-user-response.dto';
-import { CreateUserDto } from './interfaces/user/dto/create-user.dto';
-import { IServiceUserCreateResponse } from './interfaces/user/dto/service-user-create-response.interface';
+import { Request, Response } from 'express';
+import { LoginUserResponseDto } from './dto/login-user-response.dto';
+import { LoginUserDto } from './dto/login-user-dto';
+import { IServiceUserSearchResponse } from './interfaces/user/service-user-search-response.interface';
+import { CreateUserResponseDto } from './dto/create-user-response.dto';
+import { CreateUserDto } from './dto/create-user.dto';
+import { IServiceUserCreateResponse } from './interfaces/user/service-user-create-response.interface';
 import { TokenService } from './services/token.service';
-import { RolesGuard } from './services/guards/role.guard';
+import { RolesGuard } from './guards/role.guard';
 import { Roles } from './decorators/roles.decorator';
 import { Role } from './common/enums/role.enums';
 
 @Controller('users')
 export class UsersController {
-    constructor(
-        @Inject('USER_SERVICE') private readonly userServiceClient: ClientProxy,
-        private readonly tokenService: TokenService,
-    ) { }
+  constructor(
+    @Inject('USER_SERVICE') private readonly userServiceClient: ClientProxy,
+    private readonly tokenService: TokenService,
+  ) { }
 
-    @UseGuards(RolesGuard)
-    @Get('getUserByEmail')   //test route to check if the middle ware to verify token is working
-    @Roles(Role.Admin)
-    public async getUserByEmail(
-      @Body() email: string
-    ) {
-      return email;
-    }
-    
+  @UseGuards(RolesGuard)
+  @Get('getUserByEmail')   //test route to check if the middle ware to verify token is working
+  @Roles(Role.Admin)
+  public async getUserByEmail(
+    @Body() email: string
+  ) {
+    return email;
+  }
 
 
-    @Post()
-    @ApiCreatedResponse({
-      type: CreateUserResponseDto,
-    })
-    public async createUser(
-      @Body() userRequest: CreateUserDto,
-      @Res({ passthrough: true }) res: Response
-    ): Promise<CreateUserResponseDto> {
-      console.log('userRequest?????',userRequest);
-      
+
+  @Post()
+  @ApiCreatedResponse({
+    type: CreateUserResponseDto,
+  })
+  public async createUser(
+    @Body() userRequest: CreateUserDto,
+    @Res({ passthrough: true }) res: Response
+  ): Promise<CreateUserResponseDto> {
+    try {
+
+      // Call the user service to create the user
       const createUserResponse: IServiceUserCreateResponse = await firstValueFrom(
         this.userServiceClient.send('user_create', userRequest),
       );
-      console.log('createUserResponse????',createUserResponse);
-      
+
+      // Check if the user creation was successful (status CREATED)
       if (createUserResponse.status !== HttpStatus.CREATED) {
         throw new HttpException(
           {
@@ -62,31 +58,14 @@ export class UsersController {
           createUserResponse.status,
         );
       }
-  
-    //   const createTokenResponse: IServiveTokenCreateResponse = await firstValueFrom(
-    //     this.tokenServiceClient.send('token_create', {
-    //       userId: createUserResponse.user.id,
-    //     }),
-    //   );
+      // Generate a token for the newly created user
+      const createTokenResponse = await this.tokenService.createToken(
+        createUserResponse.user.id,
+        createUserResponse.user.role
+      );
+      // Store the generated token in the response headers
+      this.tokenService.setTokenInRes(res, createTokenResponse);
 
-    console.log('createUserResponse222222222222222????',createUserResponse.user.id);
-
-
-      const createTokenResponse = await this.tokenService.createToken(createUserResponse.user.id, createUserResponse.user.role);
-
-      console.log('createtokenresponse',createTokenResponse);
-
-      this.tokenService.setTokenInRes(res, createTokenResponse)
-
-      // res.cookie('auth_token', createTokenResponse.token, {
-      //   httpOnly: true, // Ensures the cookie is accessible only by the web server
-      //   secure: process.env.NODE_ENV === 'production', // Ensures the cookie is sent only over HTTPS in production
-      //   maxAge: 30 * 24 * 60 * 60 * 1000, // Expiration time in milliseconds (30 days)
-      //   sameSite: 'strict', // Helps mitigate CSRF attacks
-      //   path: '/', // Cookie available for all routes
-      // });
-      
-  
       return {
         message: createUserResponse.message,
         data: {
@@ -95,60 +74,67 @@ export class UsersController {
         },
         errors: null,
       };
+    } catch (error) {
+      if (error instanceof HttpException) {
+        // If the error is already an HttpException, throw it as is
+        throw error;
+      }
+
+      throw new HttpException(
+        {
+          // Handle any thrown errors during the execution
+          message: 'An unexpected error occurred in creating users',
+          data: null,
+          errors: error instanceof Error ? error.message : error,
+        },
+        HttpStatus.INTERNAL_SERVER_ERROR,  // Set HTTP status to 500 (Internal Server Error)
+      );
     }
-    @Post('/signout')
-    public async signout(
-      @Res({ passthrough: true }) res: Response,
-      @Req() req: Request
-    ) {
-      const isTokenRemoved = await this.tokenService.removeToken(req, res);
-      console.log('isToken removed????',isTokenRemoved);
-      
-    
-      // Respond with a simple message
-      // if (!isTokenRemoved) {
-      //   console.log('Failed to invalidate the token.');
-        // return res.status(400).json({ message: 'Failed to sign out. Token not found or already invalid.' });
-        // return {
-        //   message: 'Failed to sign out. Token not found or already invalid.'
-        // }
-      // }
-    
-      // console.log('Token successfully invalidated.');
-      // return res.status(200).json({ message: 'User signed out successfully.' });
+  }
+
+
+  @Post('/signout')
+  public async signout(
+    @Res({ passthrough: true }) res: Response,
+    @Req() req: Request
+  ) {
+    try {
+      // Call the token service to remove the token (log out the user)
+      await this.tokenService.removeToken(req, res);
+
+      // Return a success message after the user has been signed out
       return {
         message: 'User signed out successfully.'
-      }
+      };
+    } catch (error) {
+      // Handle any errors that occur during the sign-out process
+      throw new HttpException(
+        {
+          message: 'Error while signing out. Please try again later.',
+          data: null,
+          errors: error instanceof Error ? error.message : error,
+        },
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
     }
-    
-    
-
-    
+  }
 
 
-
-
-    @Post('/login')
-    @ApiCreatedResponse({
-      type: LoginUserResponseDto,
-    })
-    public async loginUser(
-      @Body() loginRequest: LoginUserDto,
-      @Res({ passthrough: true }) res: Response
-    ): Promise<LoginUserResponseDto> {
-      console.log('login>>>>>>>>>>>>>>>>>>>',loginRequest);
-
-      this.userServiceClient.send('test', {});
-      
+  @Post('/login')   // Endpoint to log in a user
+  @ApiCreatedResponse({
+    type: LoginUserResponseDto,
+  })
+  public async loginUser(
+    @Body() loginRequest: LoginUserDto,
+    @Res({ passthrough: true }) res: Response
+  ): Promise<LoginUserResponseDto> {
+    try {
+      // Call the user service to search for the user by provided credentials (username and password)
       const getUserResponse: IServiceUserSearchResponse = await firstValueFrom(
         this.userServiceClient.send('user_search_by_credentials', loginRequest),
       );
 
-    
-  
-      console.log('1getUserResponse??',getUserResponse);
-      
-  
+      // If the user was not found or the credentials are incorrect, throw an unauthorized exception
       if (getUserResponse.status !== HttpStatus.OK) {
         throw new HttpException(
           {
@@ -159,29 +145,41 @@ export class UsersController {
           HttpStatus.UNAUTHORIZED,
         );
       }
-  
-      console.log('2??',getUserResponse);
-  
-      const createTokenResponse = await this.tokenService.createToken(getUserResponse.user.id, getUserResponse.user.role);
-      this.tokenService.setTokenInRes(res, createTokenResponse)
-      
-  
-      console.log('3??',createTokenResponse);
-  
-      
-  
+
+      // If credentials are valid, generate a token for the user (authentication token)
+      const createTokenResponse = await this.tokenService.createToken(
+        getUserResponse.user.id,
+        getUserResponse.user.role
+      );
+
+       // Set the token in the response headers (for the client to use in future requests)
+      this.tokenService.setTokenInRes(res, createTokenResponse);
+
+       // Return the response with a success message and the generated token
       return {
         message: getUserResponse.message,
         data: {
           token: createTokenResponse.token,
         },
         errors: null,
-        //  message: 'createTokenResponse.message',
-        // data: {
-        //   token: 'createTokenResponse.token',
-        // },
-        // errors: null,
       };
+    } catch (error) {
+      // Handle any errors that occur during the login process
+      if (error instanceof HttpException) {
+        throw error;
+      }
+
+       // For any unexpected errors, return a generic internal server error response
+      throw new HttpException(
+        {
+          message: 'An unexpected error occurred',
+          data: null,
+          errors: error instanceof Error ? error.message : error,
+        },
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
     }
-  
+  }
+
+
 }
