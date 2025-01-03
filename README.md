@@ -97,3 +97,91 @@ Nest is an MIT-licensed open source project. It can grow thanks to the sponsors 
 ## License
 
 Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+
+
+
+
+
+
+
+---
+
+## **Using `@MessagePattern` vs `@EventPattern`**
+
+In a **NestJS microservice** architecture, communication between services can be achieved using either `@MessagePattern` or `@EventPattern`. Understanding when to use each pattern is crucial for designing a robust, scalable system.
+
+### **1. `@MessagePattern`**
+
+`@MessagePattern` is used for **request-response** communication, where the sender expects a response from the receiver before proceeding with further operations. It is suitable for tightly coupled services where synchronous acknowledgment or error handling is required.
+
+#### **When to Use `@MessagePattern`**
+
+- **Request-Response Communication**:  
+  When the sender needs a confirmation or result before proceeding.
+  
+- **Error Handling**:  
+  Ensures that errors on the receiver side can be handled by the sender (e.g., triggering compensating actions or retries).
+
+- **Synchronous Workflows**:  
+  If operations depend on each other, and one service must wait for another to complete before continuing.
+
+#### **Example**
+
+```typescript
+// Sender: Product Service
+const response = await this.userClient.send('purchase_history', payload).toPromise();
+
+// Receiver: User Service
+@MessagePattern('purchase_history')
+public async handlePurchaseHistory(data: IUserPurchaseHistory): Promise<{ status: number; message: string }> {
+  // Handle request and send response
+}
+```
+
+---
+
+### **2. `@EventPattern`**
+
+`@EventPattern` is used for **fire-and-forget** communication, where the sender emits an event and doesn’t wait for a response. It’s ideal for decoupling services and broadcasting events to multiple receivers.
+
+#### **When to Use `@EventPattern`**
+
+- **Fire-and-Forget Communication**:  
+  When the sender doesn’t need to know the outcome immediately.
+
+- **Decoupled Services**:  
+  Useful for decoupling microservices, as the sender only emits an event, and receivers can handle it independently.
+
+- **Broadcasting Events**:  
+  If the same event needs to be consumed by multiple services (e.g., logging, notifications, analytics).
+
+- **Asynchronous Workflows**:  
+  When operations can be processed independently and asynchronously by different services.
+
+#### **Example**
+
+```typescript
+// Sender: Product Service
+this.userClient.emit('purchase_history', payload);
+
+// Receiver: User Service
+@EventPattern('purchase_history')
+public async handlePurchaseHistoryEvent(data: { purchase: IUserPurchaseHistory }) {
+  // Handle the event asynchronously
+}
+```
+
+---
+
+### **Summary**
+
+| Feature                      | `@MessagePattern`                     | `@EventPattern`                         |
+|------------------------------|---------------------------------------|----------------------------------------|
+| **Communication Type**       | Request-Response                      | Fire-and-Forget                        |
+| **Use Case**                 | Tightly coupled, synchronous workflows | Decoupled, asynchronous workflows      |
+| **Error Handling**           | Immediate acknowledgment and handling | Requires custom retry mechanisms       |
+| **Workflow**                 | Synchronous                           | Asynchronous                           |
+| **Multiple Receivers**       | Not ideal                             | Ideal (broadcasting events)            |
+
+---
+

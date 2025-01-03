@@ -16,11 +16,12 @@ import { ConfigModule } from '@nestjs/config';
   imports: [
     // ConfigModule loads environment variables and configuration settings
     ConfigModule.forRoot({
+      isGlobal: true,
       envFilePath: '.env', // Load environment variables from the .env file
     }),
     
     // MongooseModule sets up MongoDB connection and schema registration
-    MongooseModule.forRoot('mongodb://localhost:27017/nest_main', {
+    MongooseModule.forRoot(process.env.MONGODB_URL, {
       autoCreate: true, // Automatically create the database if it doesn't exist
     }),
 

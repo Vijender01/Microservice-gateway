@@ -7,6 +7,8 @@ import { Role } from './common/enums/role.enums';
 import { IProduct } from './interfaces/common/create-product.interface';
 import { IServiceProductResponse } from './interfaces/user/service-create-product-response.interface';
 import { IPurchaseProduct } from './interfaces/common/purchase-product.interface';
+import { ERROR_MESSAGES } from './common/constants/error-messages';
+import { product_service } from './common/constants/product-services';
 
 @Controller('products')
 export class ProductsController {
@@ -23,7 +25,7 @@ export class ProductsController {
     try {
       // Call the product service to create the product
       const createProductResponse: IServiceProductResponse = await firstValueFrom(
-        this.productServiceClient.send('product_create', product), // Send the product data to the product creation service
+        this.productServiceClient.send(product_service.CREATE_PRODUCT, product), // Send the product data to the product creation service
       );
 
       // Check if the product creation was successful (status CREATED)
@@ -49,7 +51,7 @@ export class ProductsController {
       // Handle any errors that occur during the process
       throw new HttpException(
         {
-          message: 'An unexpected error occurred while creating the product.',
+          message: ERROR_MESSAGES.PRODUCT_CREATE_ERROR,
           data: null,
           errors: error instanceof Error ? error.message : error,
         },
@@ -65,9 +67,11 @@ export class ProductsController {
     @Body() product: IPurchaseProduct // The product purchase data from the request body
   ): Promise<IServiceProductResponse> {
     try {
+      console.log('product',product);
+      
       // Call the product service to process the product purchase
       const purchaseProductResponse: IServiceProductResponse = await firstValueFrom(
-        this.productServiceClient.send('product_purchase', product), // Send the purchase data to the product purchase service
+        this.productServiceClient.send(product_service.PURCHASE_PRODUCT, product), // Send the purchase data to the product purchase service
       );
 
       // Return the response from the product purchase service
@@ -76,7 +80,7 @@ export class ProductsController {
       // Handle any errors that occur during the product purchase process
       throw new HttpException(
         {
-          message: 'An unexpected error occurred while purchasing the product.', // General error message
+          message: ERROR_MESSAGES.PURCHASE_PRODUCT_ERROR, // General error message
           data: null,
           errors: error instanceof Error ? error.message : error, // Include the error message if it's an instance of Error
         },

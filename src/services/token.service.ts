@@ -5,11 +5,13 @@ import { Model } from 'mongoose';
 import { IToken } from 'src/interfaces/token/token.interface';
 import { Request, Response } from 'express';
 import { Role } from 'src/common/enums/role.enums';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class TokenService {
   constructor(private readonly jwtService: JwtService,
     @InjectModel('Token') private readonly tokenModel: Model<IToken>,
+    private readonly configService: ConfigService,
   ) { }
 
   public async createToken(userId: string, userRole: Role): Promise<IToken> {
@@ -24,7 +26,7 @@ export class TokenService {
         },
         {
           // You should move the 'expiresIn' value to the .env file for better security and flexibility
-          expiresIn: process.env.expiresIn || 30 * 24 * 60 * 60, // Token expiration time (30 days)
+          expiresIn: this.configService.get<string>('EXPIRES_IN'), // Token expiration time (30 days)
         },
       );
 
@@ -62,48 +64,48 @@ export class TokenService {
   }
 
   public async removeToken(req: Request, res: Response): Promise<boolean> {
-    try {
-      // Retrieve the token from the cookies
-      const token = req.cookies?.auth_token;
-  
-      // If no token is found, log the message and return false
-      if (!token) {
-        console.log('No auth_token found in cookies.');
-        return false;
-      }
-  
-      // Update the token status to 'invalid' in the database (using findOneAndUpdate)
-      const updatedToken = await this.tokenModel.findOneAndUpdate(
-        { token: token, status: 'valid' }, // Find the valid token
-        { $set: { status: 'invalid' } }, // Update its status to 'invalid'
-        { new: true, lean: true } // Return the updated token as a plain JavaScript object
-      );
-  
-      // If the token is not found or is already invalid, log the message and return false
-      if (!updatedToken) {
-        console.log('Token not found or already invalid.');
-        return false;
-      }
-  
-      // Log the updated token status (only log relevant fields for security reasons)
-      console.log('Token status updated to invalid:', updatedToken._id);
-  
-      // Clear the auth_token cookie from the response (log out the user)
-      res.clearCookie('auth_token', {
-        httpOnly: true, // Ensures the cookie is not accessible via JavaScript
-        secure: process.env.NODE_ENV === 'production', // Only send the cookie over HTTPS in production
-        sameSite: 'strict', // Mitigates CSRF risks by not sending the cookie cross-site
-        path: '/', // Cookie is available for all routes in the application
-      });
-  
-      return true; // Return true to indicate the token was successfully removed
-    } catch (error) {
-      // Log the error and return false if something goes wrong during the process
-      console.error('Error removing token:', error.message);
+  try {
+    // Retrieve the token from the cookies
+    const token = req.cookies?.auth_token;
+
+    // If no token is found, log the message and return false
+    if (!token) {
+      console.log('No auth_token found in cookies.');
       return false;
     }
+
+    // Update the token status to 'invalid' in the database (using findOneAndUpdate)
+    const updatedToken = await this.tokenModel.findOneAndUpdate(
+      { token: token, status: 'valid' }, // Find the valid token
+      { $set: { status: 'invalid' } }, // Update its status to 'invalid'
+      { new: true, lean: true } // Return the updated token as a plain JavaScript object
+    );
+
+    // If the token is not found or is already invalid, log the message and return false
+    if (!updatedToken) {
+      console.log('Token not found or already invalid.');
+      return false;
+    }
+
+    // Log the updated token status (only log relevant fields for security reasons)
+    console.log('Token status updated to invalid:', updatedToken._id);
+
+    // Clear the auth_token cookie from the response (log out the user)
+    res.clearCookie('auth_token', {
+      httpOnly: true, // Ensures the cookie is not accessible via JavaScript
+      secure: process.env.NODE_ENV === 'production', // Only send the cookie over HTTPS in production
+      sameSite: 'strict', // Mitigates CSRF risks by not sending the cookie cross-site
+      path: '/', // Cookie is available for all routes in the application
+    });
+
+    return true; // Return true to indicate the token was successfully removed
+  } catch (error) {
+    // Log the error and return false if something goes wrong during the process
+    console.error('Error removing token:', error.message);
+    return false;
   }
-  
+}
+
 
 
 }

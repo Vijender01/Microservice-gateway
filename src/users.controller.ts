@@ -13,6 +13,9 @@ import { TokenService } from './services/token.service';
 import { RolesGuard } from './guards/role.guard';
 import { Roles } from './decorators/roles.decorator';
 import { Role } from './common/enums/role.enums';
+import { ERROR_MESSAGES } from './common/constants/error-messages';
+import { SUCCESS_MESSAGES } from './common/constants/success-messages';
+import { user_service } from './common/constants/user-services';
 
 @Controller('users')
 export class UsersController {
@@ -44,7 +47,7 @@ export class UsersController {
 
       // Call the user service to create the user
       const createUserResponse: IServiceUserCreateResponse = await firstValueFrom(
-        this.userServiceClient.send('user_create', userRequest),
+        this.userServiceClient.send(user_service.CREATE_USER, userRequest),
       );
 
       // Check if the user creation was successful (status CREATED)
@@ -83,7 +86,7 @@ export class UsersController {
       throw new HttpException(
         {
           // Handle any thrown errors during the execution
-          message: 'An unexpected error occurred in creating users',
+          message: ERROR_MESSAGES.CREATE_USER_FAILED,
           data: null,
           errors: error instanceof Error ? error.message : error,
         },
@@ -104,13 +107,13 @@ export class UsersController {
 
       // Return a success message after the user has been signed out
       return {
-        message: 'User signed out successfully.'
+        message: SUCCESS_MESSAGES.SIGNOUT_SUCCESS
       };
     } catch (error) {
       // Handle any errors that occur during the sign-out process
       throw new HttpException(
         {
-          message: 'Error while signing out. Please try again later.',
+          message: ERROR_MESSAGES.SIGNOUT_ERROR,
           data: null,
           errors: error instanceof Error ? error.message : error,
         },
@@ -131,7 +134,7 @@ export class UsersController {
     try {
       // Call the user service to search for the user by provided credentials (username and password)
       const getUserResponse: IServiceUserSearchResponse = await firstValueFrom(
-        this.userServiceClient.send('user_search_by_credentials', loginRequest),
+        this.userServiceClient.send(user_service.SEARCH_USER_BY_CREDENTIALS, loginRequest),
       );
 
       // If the user was not found or the credentials are incorrect, throw an unauthorized exception
@@ -172,7 +175,7 @@ export class UsersController {
        // For any unexpected errors, return a generic internal server error response
       throw new HttpException(
         {
-          message: 'An unexpected error occurred',
+          message: ERROR_MESSAGES.LOGIN_UNAUTHORIZED,
           data: null,
           errors: error instanceof Error ? error.message : error,
         },
