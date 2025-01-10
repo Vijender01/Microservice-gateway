@@ -106,6 +106,79 @@ Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
 
 ---
 
+---
+
+# Project Setup
+
+## Gateway Service
+
+The gateway is built using [NestJS](https://nestjs.com/) and is running on **Node v20.18.1**. 
+
+### Prerequisites
+
+Before running the application, make sure the following services are up and running:
+
+1. **MongoDB**: 
+   - MongoDB should be running on the default port **27017**.
+   - If you don't have MongoDB installed, you can download and install it from [here](https://www.mongodb.com/try/download/community).
+
+2. **RabbitMQ**: 
+   - A RabbitMQ connection is required.
+   - Sign up for a free account at [RabbitMQ Cloud](https://www.cloudamqp.com/) or [RabbitMQ.com](https://www.rabbitmq.com/) to get access to your RabbitMQ URL.
+   - Once you have the credentials, you will need to add them to your `.env` file.
+
+### Environment Variables
+
+Create a `.env` file in the root of the project and add the following environment variables:
+
+```
+RABBIT_MQ_URL= "<Your RabbitMQ URL>"
+JWT_SECRET= "<Your JWT Secret>"
+EXPIRES_IN= "30d"
+FRONTEND_URL= "http://localhost:4200"
+MONGODB_URL= "mongodb://localhost:27017/nest_main"
+```
+
+### Installation
+
+1. Install all dependencies by running:
+
+   ```
+   npm install
+   ```
+
+2. After all dependencies are installed, you can start the development server with:
+
+   ```
+   npm run start:dev
+   ```
+
+   Or to run in production mode, use:
+
+   ```
+   npm run start
+   ```
+
+### Microservices
+
+This gateway service depends on other microservices such as the **User Service** and **Product Service**. To access these services, you must follow the same setup steps (i.e., environment variables, installation) for them as well.
+
+Once those services are up and running, you will be able to hit the relevant routes in the gateway service controllers.
+
+### Notes:
+
+- Make sure all services (Gateway, User Service, Product Service) are connected to the same RabbitMQ and MongoDB instances.
+- Verify that all microservices are running before making requests to the gateway.
+
+
+
+
+
+
+
+
+----
+
 ## **Using `@MessagePattern` vs `@EventPattern`**
 
 In a **NestJS microservice** architecture, communication between services can be achieved using either `@MessagePattern` or `@EventPattern`. Understanding when to use each pattern is crucial for designing a robust, scalable system.
